@@ -92,11 +92,39 @@ EOF;
      */
     private function renderParameter(\ReflectionParameter $parameter)
     {
+        if ($parameter->isArray()) {
+            $s = 'array';
+        } elseif ($parameter->isCallable()) {
+            $s = 'callable';
+        } else {
+            $s = $parameter->getClass();
+        }
 
+        if ($s) {
+            $s .= " ";
+        }
 
+        if ($parameter->isPassedByReference()) {
+            $s .= '&';
+        }
 
+        $s .= "$" . $parameter->getName();
+
+        try {
+            if ($parameter->isDefaultValueConstant()) {
+                $s .= sprintf(" = %s", var_export($parameter->getDefaultValueConstantName(), true));
+            }
+        } catch (\ReflectionException $e) {
+        }
+        try {
+            if ($parameter->isDefaultValueAvailable()) {
+                $s .= sprintf(" = %s", var_export($parameter->getDefaultValue(), true));
+            }
+        } catch (\ReflectionException $e) {
+        }
+
+        return $s;
     }
-
 
 
     /**
@@ -107,7 +135,7 @@ EOF;
     {
         $s = '';
         foreach ($constants as $key => $value) {
-            $s .= sprintf("define('%s', '%s');\n", $key, $value);
+            $s .= sprintf("define('%s', %s);\n", $key, var_export($value, true));
         }
 
         return $s;
@@ -147,8 +175,32 @@ EOF;
      */
     private function renderClass(\ReflectionClass $class)
     {
-    }
+        $s = '';
+        if ($class->isAbstract()) {
+            $s .= "abstruct ";
+        }
+        if ($class->isFinal()) {
+            $s .= "final ";
+        }
 
+        if ($class->isInterface()) {
+            $s .= "interface \n";
+        } else {
+            $s .= "class \n";
+        }
+
+        $s .= "{\n";
+
+        $s .= "}";
+
+
+        return <<<EOF
+namespaces {$class->getNamespaceName()}
+{
+{$s}
+}
+EOF;
+    }
 
 
 }
