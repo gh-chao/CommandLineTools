@@ -15,29 +15,33 @@ class ClassRender
      */
     public static function render(\ReflectionClass $reflectionClass)
     {
-        $abstract = $reflectionClass->isAbstract() ? ($reflectionClass->isInterface() ? '' :'abstract ') : '';
-
+        $abstract = $reflectionClass->isAbstract() ? ($reflectionClass->isInterface() ? '' : 'abstract ') : '';
         $final    = $reflectionClass->isFinal() ? 'final ' : '';
         $type     = $reflectionClass->isInterface() ? 'interface' : 'class';
 
-        $constans  = static::renderContants($reflectionClass->getConstants());
-        $propertys = static::renderProperties($reflectionClass->getProperties());
-        $methods   = static::renderMethods($reflectionClass->getMethods());
+        $constans   = static::renderContants($reflectionClass);
+        $properties = static::renderProperties($reflectionClass);
+        $methods    = static::renderMethods($reflectionClass);
 
+        $extends     = '';
+        $parentClass = $reflectionClass->getParentClass();
+        if ($parentClass && !$parentClass->isInterface()) {
+            $extends = ' extends ' . $parentClass->getName();
+        }
         $interface = implode(', ', $reflectionClass->getInterfaceNames());
         if ($interface) {
-            $interface = ' implements '. $interface;
+            $interface = ' implements ' . $interface;
         }
 
         return <<<EOF
 namespace {$reflectionClass->getNamespaceName()}
 {
-{$abstract}{$final}{$type} {$reflectionClass->getName()}{$interface}
+{$abstract}{$final}{$type} {$reflectionClass->getName()}{$extends}{$interface}
 {
 
 {$constans}
 
-{$propertys}
+{$properties}
 
 {$methods}
 
@@ -48,12 +52,13 @@ EOF;
     }
 
     /**
-     * @param array $array
+     * @param \ReflectionClass $reflectionClass
      * @return string
      */
-    public static function renderContants(array $array)
+    public static function renderContants(\ReflectionClass $reflectionClass)
     {
-        $s = [];
+        $array = $reflectionClass->getConstants();
+        $s     = [];
         foreach ($array as $name => $value) {
             $s [] = sprintf("const %s = %s;", $name, var_export($value, true));
         }
@@ -62,14 +67,22 @@ EOF;
     }
 
     /**
-     * @param array $array
+     * @param \ReflectionClass $reflectionClass
      * @return string
      */
-    public static function renderProperties(array $array)
+    public static function renderProperties(\ReflectionClass $reflectionClass)
     {
+        $ReflectionProperties = $reflectionClass->getProperties();
+        $values               = $reflectionClass->getDefaultProperties();
+
         $s = [];
-        foreach ($array as $reflectionProperty) {
-            $s[] = static::renderProperty($reflectionProperty);
+        /** @var \ReflectionProperty $reflectionProperty */
+        foreach ($ReflectionProperties as $reflectionProperty) {
+            if ($reflectionProperty->isPrivate()) {
+                continue;
+            }
+            $value = isset($values[$reflectionProperty->getName()]) ? $values[$reflectionProperty->getName()] : null;
+            $s[]   = static::renderProperty($reflectionProperty, $value);
         }
 
         return implode("\n", $s);
@@ -77,32 +90,36 @@ EOF;
 
     /**
      * @param \ReflectionProperty $reflectionProperty
+     * @param mixed               $value
      * @return string
      */
-    public static function renderProperty(\ReflectionProperty $reflectionProperty)
+    public static function renderProperty(\ReflectionProperty $reflectionProperty, $value)
     {
-        $private   = $reflectionProperty->isPrivate() ? 'private' : '';
-        $public    = $reflectionProperty->isPublic() ? 'public' : '';
-        $protected = $reflectionProperty->isProtected() ? 'protected' : '';
-        $static    = $reflectionProperty->isStatic() ? 'static ' : '';
+        if ($reflectionProperty->isPublic()) {
+            $access = 'public ';
+        } else {
+            $access = 'protected ';
+        }
 
-        $reflectionProperty->setAccessible(true);
+        $static = $reflectionProperty->isStatic() ? 'static ' : '';
+        $value  = var_export($value, true);
 
-        $obj = new \stdClass();
-
-        $default = $reflectionProperty->isDefault() ? ' = ' . var_export($reflectionProperty->getValue($obj), true) : '';
-
-        return "{$private}{$public}{$protected} {$static}\${$reflectionProperty->getName()}{$default};";
+        return "{$access}{$static}\${$reflectionProperty->getName()} = {$value};";
     }
 
     /**
-     * @param array $array
+     * @param \ReflectionClass $reflectionClass
      * @return string
      */
-    public static function renderMethods(array $array)
+    public static function renderMethods(\ReflectionClass $reflectionClass)
     {
-        $s = [];
-        foreach ($array as $reflectionMethod) {
+        $reflectionMethods = $reflectionClass->getMethods();
+        $s                 = [];
+        /** @var \ReflectionMethod $reflectionMethod */
+        foreach ($reflectionMethods as $reflectionMethod) {
+            if ($reflectionMethod->isPrivate()) {
+                continue;
+            }
             $s[] = MethodRender::render($reflectionMethod);
         }
 

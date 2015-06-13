@@ -12,26 +12,21 @@ class MethodRender extends FunctionRender
     public static function render($reflectionMethod)
     {
         $annotation = static::renderAnnotation($reflectionMethod);
-        $abstract   = $reflectionMethod->isAbstract() ? ($reflectionMethod->getDeclaringClass()->isInterface() ? '' : 'abstract ') : '';
-        $private    = $reflectionMethod->isPrivate() ? 'private' : '';
-        $public     = $reflectionMethod->isPublic() ? 'public' : '';
-        $protected  = $reflectionMethod->isProtected() ? 'protected' : '';
-        $static     = $reflectionMethod->isStatic() ? 'static ' : '';
 
-        $reflectionMethod->setAccessible(true);
+        $final    = $reflectionMethod->isFinal() ? 'final ' : '';
+        $abstract = $reflectionMethod->isAbstract() ? ($reflectionMethod->getDeclaringClass()->isInterface() ? '' : 'abstract ') : '';
 
-        $fun = sprintf("%s%s%s%s %sfunction %s (%s) %s",
-            $abstract,
-            $private,
-            $public,
-            $protected,
-            $static,
-            $reflectionMethod->getName(),
-            static::renderParameters($reflectionMethod->getParameters()),
-            $reflectionMethod->isAbstract() ? ';' : '{}'
-        );
+        if ($reflectionMethod->isPublic()) {
+            $access = 'public ';
+        } else {
+            $access = 'protected ';
+        }
 
-        return $annotation . $fun;
+        $static = $reflectionMethod->isStatic() ? 'static ' : '';
+        $params = static::renderParameters($reflectionMethod->getParameters());
+
+        return $annotation . "{$final}{$abstract}{$access}{$static}function {$reflectionMethod->getName()} ({$params})" .
+        ($reflectionMethod->isAbstract() ? ';' : '{}');
     }
 
 }

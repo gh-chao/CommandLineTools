@@ -19,9 +19,6 @@ class FunctionRender
         $s = array();
         /** @var \ReflectionParameter $reflectionParameter */
         foreach ($reflectionParameters as $reflectionParameter) {
-            if ($reflectionParameter->getName() == '...') {
-                continue;
-            }
             $s[] = static::renderParameter($reflectionParameter);
         }
 
@@ -34,26 +31,35 @@ class FunctionRender
      */
     public static function renderParameter(\ReflectionParameter $reflectionParameter)
     {
-        $isArray     = $reflectionParameter->isArray() ? 'array ' : '';
-        $isCallable  = $reflectionParameter->isCallable() ? 'callable' : '';
-        $isClass     = $reflectionParameter->getClass() ? get_class($reflectionParameter->getClass()) . ' ' : '';
-        $isReference = $reflectionParameter->isPassedByReference() ? '&' : '';
+        $type = '';
+        if ($reflectionParameter->isArray()) {
+            $type = 'array ';
+        } elseif ($reflectionParameter->isCallable()) {
+            $type = 'callable ';
+        } elseif ($reflectionParameter->getClass()) {
+            $type = $reflectionParameter->getClass()->getName() . ' ';
+        }
 
         $default = '';
-        try {
-            if ($reflectionParameter->isDefaultValueConstant()) {
-                $default = sprintf(" = %s", var_export($reflectionParameter->getDefaultValueConstantName(), true));
+        if ($reflectionParameter->isOptional()) {
+            $default = " = NULL";
+            try {
+                if ($reflectionParameter->isDefaultValueAvailable()) {
+                    $default = sprintf(" = %s", var_export($reflectionParameter->getDefaultValue(), true));
+                } elseif ($reflectionParameter->isDefaultValueConstant()) {
+                    $default = sprintf(" = %s", var_export($reflectionParameter->getDefaultValueConstantName(), true));
+                }
+            } catch (\ReflectionException $e) {
             }
-        } catch (\ReflectionException $e) {
-        }
-        try {
-            if ($reflectionParameter->isDefaultValueAvailable()) {
-                $default = sprintf(" = %s", var_export($reflectionParameter->getDefaultValue(), true));
-            }
-        } catch (\ReflectionException $e) {
         }
 
-        return "{$isArray}{$isCallable}{$isClass}{$isReference}\${$reflectionParameter->getName()}{$default}";
+        $reference = $reflectionParameter->isPassedByReference() ? '&' : '';
+
+        if ($reflectionParameter->getName() == '...') {
+            return "{$type}{$reference}\$_ = \"...\"";
+        }
+
+        return "{$type}{$reference}\${$reflectionParameter->getName()}{$default}";
     }
 
     /**
@@ -78,7 +84,7 @@ class FunctionRender
     public static function renderAnnotation($reflectionMethod)
     {
         $reflectionParameters = $reflectionMethod->getParameters();
-        $s = "/**\n";
+        $s                    = "/**\n";
 
         /** @var \ReflectionParameter $reflectionParameter */
         foreach ($reflectionParameters as $reflectionParameter) {
@@ -87,12 +93,12 @@ class FunctionRender
             }
             $s .= sprintf(
                 " * @param %s$%s\n",
-                $reflectionParameter->getClass() ? get_class($reflectionParameter->getClass()) . ' ' : '',
+                $reflectionParameter->getClass() ? $reflectionParameter->getClass()->getName() . ' ' : '',
                 $reflectionParameter->getName()
             );
         }
 
-        if ($reflectionMethod->getName()=='__toString') {
+        if ($reflectionMethod->getName() == '__toString') {
             $s .= " *\n * @return string\n */\n";
         } else {
             $s .= " *\n * @return mixed\n */\n";

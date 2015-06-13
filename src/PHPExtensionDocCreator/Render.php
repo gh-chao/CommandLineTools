@@ -4,30 +4,35 @@
 namespace PHPExtensionDocCreator;
 
 
+use PHPExtensionDocCreator\Render\ClassRender;
 use PHPExtensionDocCreator\Render\ConstantRender;
+use PHPExtensionDocCreator\Render\FunctionRender;
 
 class Render
 {
-    public static function batchRender(array $array, callable $render, $guld)
+    public static function renderClasses(\ReflectionExtension $reflectionExtension)
     {
         $s = [];
-        foreach ($array as $item) {
-            $s [] = call_user_func($render, $item);
+        foreach ($reflectionExtension->getClasses() as $reflectionClass) {
+            $s[] = ClassRender::render($reflectionClass);
         }
+        return implode("\n\n", $s);
+    }
 
-        return implode($guld, $s);
+    public static function renderFunctions(\ReflectionExtension $reflectionExtension)
+    {
+        $s = [];
+        foreach ($reflectionExtension->getFunctions() as $reflectionFunction) {
+            $s[] = FunctionRender::render($reflectionFunction);
+        }
+        return implode("\n\n", $s);
     }
 
     public static function renderAll(\ReflectionExtension $reflectionExtension)
     {
-
         $constants = ConstantRender::render($reflectionExtension->getConstants());
-
-        $functions = static::batchRender($reflectionExtension->getFunctions(),
-            'PHPExtensionDocCreator\Render\FunctionRender::render', "\n\n");
-
-        $classes   = static::batchRender($reflectionExtension->getClasses(),
-            'PHPExtensionDocCreator\Render\ClassRender::render', "\n\n");
+        $functions = static::renderFunctions($reflectionExtension);
+        $classes   = static::renderClasses($reflectionExtension);
 
         return <<<EOF
 <?php
