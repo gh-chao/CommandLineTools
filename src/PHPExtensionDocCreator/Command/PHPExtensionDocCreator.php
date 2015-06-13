@@ -3,6 +3,7 @@ namespace PHPExtensionDocCreator\Command;
 
 use Console\Helper\QuestionHelper;
 use PHPExtensionDocCreator\Generate\Generate;
+use PHPExtensionDocCreator\Render\Render;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -36,8 +37,18 @@ class PHPExtensionDocCreator extends Command
         $extensionName = $questionHelper->askAndValid($output, $this->getExtensionNameQuestion());
         $output_dir = $questionHelper->askAndValid($output, $this->getOutputDirQuestion());
 
-        $generate = new Generate();
-        $generate->output($extensionName, $output_dir);
+        $content = Render::renderAll(new \ReflectionExtension($extensionName));
+
+        if (is_dir($output_dir)) {
+            $output_dir = realpath($output_dir) . DIRECTORY_SEPARATOR . $extensionName . '.php';
+        } elseif (!is_dir(dirname($output_dir))) {
+            mkdir(dirname($output_dir), 0755, true);
+        }
+
+        file_put_contents($output_dir , $content );
+
+        $output->writeln("success!!!");
+        $output->writeln("<info>{$output_dir}</info>");
 
         return null;
     }
