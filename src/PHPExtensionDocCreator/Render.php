@@ -1,8 +1,10 @@
 <?php
 
 
-namespace PHPExtensionDocCreator\Render;
+namespace PHPExtensionDocCreator;
 
+
+use PHPExtensionDocCreator\Render\ConstantRender;
 
 class Render
 {

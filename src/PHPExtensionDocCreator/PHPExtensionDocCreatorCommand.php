@@ -1,9 +1,7 @@
 <?php
-namespace PHPExtensionDocCreator\Command;
+namespace PHPExtensionDocCreator;
 
 use Console\Helper\QuestionHelper;
-use PHPExtensionDocCreator\Generate\Generate;
-use PHPExtensionDocCreator\Render\Render;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -14,7 +12,7 @@ use Symfony\Component\Console\Question\Question;
  * @package PHPExtensionDocCreator\Command
  * @author  Leo Yang <leoyang@motouch.cn>
  */
-class PHPExtensionDocCreator extends Command
+class PHPExtensionDocCreatorCommand extends Command
 {
 
     protected function configure()

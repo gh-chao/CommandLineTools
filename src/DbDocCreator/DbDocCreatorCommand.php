@@ -1,8 +1,7 @@
 <?php
-namespace DbDocCreator\Command;
+namespace DbDocCreator;
 
 use Console\Helper\QuestionHelper;
-use DbDocCreator\Generate\Generate;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\DriverManager;
 use InvalidArgumentException;
@@ -16,9 +15,8 @@ use Symfony\Component\Console\Question\Question;
  * Class GenerateCommand
  * @author Leo Yang <897798676@qq.com>
  */
-class DbDocCreator extends Command
+class DbDocCreatorCommand extends Command
 {
-
 
     /**
      * @var array
@@ -78,8 +76,8 @@ class DbDocCreator extends Command
         $paramters['charset'] = 'utf8';
 
         $conn      = DriverManager::getConnection($paramters, new Configuration());
-        $gnerate   = new Generate($conn, $output);
-        $gnerate->output($paramters['outputdir']);
+        $gnerate   = new Render($conn, $output);
+        $gnerate->output($paramters['outputdir'], $paramters['dbname']);
     }
 
     /**

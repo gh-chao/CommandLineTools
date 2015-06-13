@@ -1,5 +1,5 @@
 <?php
-namespace DbDocCreator\Generate;
+namespace DbDocCreator;
 
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -7,9 +7,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Class Generate
+ *
  * @author Leo Yang <897798676@qq.com>
  */
-class Generate
+class Render
 {
 
     /**
@@ -36,14 +37,13 @@ class Generate
     /**
      * @param $path
      */
-    public function output($path)
+    public function output($path, $dbname)
     {
         $sm     = $this->connection->getSchemaManager();
-        $dbname = $sm->getDatabasePlatform()->getName();
         $tables = $sm->listTables();
 
-        $filename = is_dir($path) ? $this->normalizePath($path) . "/doc.html" : $path;
-        $html     = $this->render($dbname, $tables);
+        $filename = is_dir($path) ? rtrim($path, "\\/") . "/{$dbname}.html" : $path;
+        $html     = $this->_render($dbname, $tables);
         file_put_contents($filename, $html);
         $this->output->writeln("<info>生成完成</info>");
         $this->output->writeln(sprintf('文档已输出到: <info>%s</info>', $filename));
@@ -55,9 +55,9 @@ class Generate
      * @param $tables
      * @return string
      */
-    public function render($dbname, $tables)
+    public function _render($dbname, $tables)
     {
-        $loader   = new \Twig_Loader_Filesystem(dirname(__DIR__) . '/Resource');
+        $loader   = new \Twig_Loader_Filesystem(__DIR__ . '/Resource');
         $twig     = new \Twig_Environment($loader, []);
         $template = $twig->loadTemplate('doc.html.twig');
 
@@ -67,12 +67,4 @@ class Generate
         ));
     }
 
-    /**
-     * @param $path
-     * @return string
-     */
-    private function normalizePath($path)
-    {
-        return rtrim($path, "\\/");
-    }
 }
